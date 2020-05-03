@@ -4,9 +4,11 @@ import numpy as np
 
 
 def sigmoid(z):
+    # s型函数
     return 1.0 / (1.0 + np.exp(-z))
 
 def sigmoid_prime(z):
+    # s的导数
     return sigmoid(z)*(1-sigmoid(-z))
 
 class Networks(object):
@@ -65,15 +67,16 @@ class Networks(object):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in mini_batch:
-            # △ ▽b， △ ▽w ,反向传播
+            # 反向传播，计算所有层的w和b的误差
             delta_nabla_b, delta_nabla_w = self.backprop(x, y)
 
+            # 全是0的wb各加上误差
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-            # 调整w和b、
+            # 调整w和b
             """
-            w = w - η/m * ∑
-            b = b - η/m * ∑
+            w = w - η/m * ∑误差
+            b = b - η/m * ∑误差
             """
             self.weights = [
                 w-(eta/len(mini_batch))*nw
@@ -87,31 +90,47 @@ class Networks(object):
     def backprop(self, x, y):
         """
         反向传播算法
-        :param x:
-        :param y:
+        :param x: 输入，第一层为输入x，后面为计算的a
+        :param y: 对应正确输出结果
         :return:
         """
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-
+        # a = S(z)
         activation = x
         activations = [x]
         zs = []
         for b, w in zip(self.biases, self.weights):
+            # 计算激活函数a=S(z)
+            # z = (w·a+b)
             z = np.dot(w, activation)+b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
+
+        # C = 1/2 ∑ (y -a)² =》 C对a的导数为 (a-y)
+        # △C(即δ) = (a-y)· a导
+        # 即误差的变化量公式：C关于a的变化率
+        # 通过结果误差传播给最后一层的a 即 w和b的误差
         delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
+
+        # 求出输出层上的b和与前一层之间的w
+        # △b = δ 因为C = 1/2 ∑ (y -a)²  a = (w·a+b)所以C对b的偏导数等于对a的偏导数 ∂C/∂b = ∂C/∂a * ∂a/∂b 又 ∂a/∂b = 1
         nabla_b[-1] = delta
+        # △w = δ · a 因为∂C/∂w = ∂C/∂a * ∂a/∂w 又 ∂a/∂w = a
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
 
+        # 一层层往前传
         for i in range(2, self.num_layers):
             z = zs[-i]
             sp = sigmoid_prime(z)
+            # 根据上面的计算最后一层的误差来计算出前一层误差
+            # δ = 后面w转置 · 误差 * a导
             delta = np.dot(self.weights[-i+1].transpose(), delta) * sp
+            # 同理计算出前一层的b误差和w误差
             nabla_b[-i] = delta
             nabla_w[-i] = np.dot(delta, activations[-i-1].transpose())
+        # 返回所有层的b和w的误差
         return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
