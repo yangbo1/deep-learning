@@ -9,7 +9,7 @@ def sigmoid(z):
 
 def sigmoid_prime(z):
     # s的导数
-    return sigmoid(z)*(1-sigmoid(-z))
+    return sigmoid(z)*(1-sigmoid(z))
 
 class Networks(object):
     def __init__(self, sizes):
@@ -40,6 +40,9 @@ class Networks(object):
         if test_data:
             n_test = len(test_data)
         n = len(training_data)
+        if test_data:
+            print("epoch : {0} / {1}".format(self.evaluate(test_data), n_test))
+
         for j in range(epochs):
             # 随机排序
             random.shuffle(training_data)
